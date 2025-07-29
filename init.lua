@@ -12,6 +12,8 @@ hs.hotkey.alertDuration = 0
 hs.hints.showTitleThresh = 0
 hs.window.animationDuration = 0
 
+
+
 ----------------------------------------------------------------------------------------------------
 ------------------------------------------ 配置设置 -------------------------------------------------
 -- 配置文件
@@ -83,125 +85,23 @@ end
 -- 定义 windowHints 快捷键
 ----------------------------------------------------------------------------------------------------
 hswhints_keys = hswhints_keys or {"alt", "tab"}
+local time_window_hints = 5 -- 窗口提示显示时间，单位为秒
+
 if string.len(hswhints_keys[2]) > 0 then
     spoon.ModalMgr.supervisor:bind(hswhints_keys[1], hswhints_keys[2], 'WindowHints 快速切换应用', function()
         spoon.ModalMgr:deactivateAll()
+
+        -- 设置提示风格（可用的有 'vimperator', 'emacs', 'default'）
+        hs.hints.style = "vimperator"  -- 支持首字母快速匹配
+        hs.alert.show("Type APP Abbreviation to switch windows", time_window_hints)
         hs.hints.windowHints()
-    end)
-end
 
-
-----------------------------------------------------------------------------------------------------
---------------------------------------- appM 快速打开应用 ---------------------------------------------
--- appM 模式 快速打开应用
-----------------------------------------------------------------------------------------------------
-spoon.ModalMgr:new("appM")
-local cmodal = spoon.ModalMgr.modal_list["appM"]
-cmodal:bind('', 'escape', '退出 ', function() spoon.ModalMgr:deactivate({"appM"}) end)
-cmodal:bind('', 'Q', '退出 ', function() spoon.ModalMgr:deactivate({"appM"}) end)
---cmodal:bind('', 'tab', 'Toggle Cheatsheet', function() spoon.ModalMgr:toggleCheatsheet() end)
-if not hsapp_list then
-    hsapp_list = {
-        {key = 'f', name = 'Finder'},
-        {key = 's', name = 'Safari'},
-        {key = 't', name = 'Terminal'},
-        {key = 'v', id = 'com.apple.ActivityMonitor'},
-        {key = 'y', id = 'com.apple.systempreferences'},
-    }
-end
-for _, v in ipairs(hsapp_list) do
-    if v.id then
-        local located_name = hs.application.nameForBundleID(v.id)
-        if located_name then
-            cmodal:bind('', v.key, located_name, function()
-                hs.application.launchOrFocusByBundleID(v.id)
-                spoon.ModalMgr:deactivate({"appM"})
-            end)
-        end
-    elseif v.name then
-        cmodal:bind('', v.key, v.name, function()
-            hs.application.launchOrFocus(v.name)
-            spoon.ModalMgr:deactivate({"appM"})
+        -- 2 秒后自动退出（若未选择窗口）
+        hs.timer.doAfter(time_window_hints, function()
+            hs.eventtap.keyStroke({}, "escape", 0)
         end)
-    end
-end
-
-
-----------------------------------------------------------------------------------------------------
--- 绑定快捷键
-----------------------------------------------------------------------------------------------------
-hsappM_keys = hsappM_keys or {"alt", "A"}
-if string.len(hsappM_keys[2]) > 0 then
-    spoon.ModalMgr.supervisor:bind(hsappM_keys[1], hsappM_keys[2], " 进入 AppM 模式，快速打开应用", function()
-        spoon.ModalMgr:deactivateAll()
-        spoon.ModalMgr:activate({"appM"}, "#FFBD2E", true)
     end)
 end
-
-----------------------------------------------------------------------------------------------------
----------------------------------------- clipshowM 配置 ---------------------------------------------
-----------------------------------------------------------------------------------------------------
-if spoon.ClipShow then
-    spoon.ModalMgr:new("clipshowM")
-    local cmodal = spoon.ModalMgr.modal_list["clipshowM"]
-    cmodal:bind('', 'escape', '退出 剪切板', function()
-        spoon.ClipShow:toggleShow()
-        spoon.ModalMgr:deactivate({"clipshowM"})
-    end)
-    cmodal:bind('', 'Q', '退出 剪切板', function()
-        spoon.ClipShow:toggleShow()
-        spoon.ModalMgr:deactivate({"clipshowM"})
-    end)
-    cmodal:bind('', 'N', '保存此会话', function()
-        spoon.ClipShow:saveToSession()
-    end)
-    cmodal:bind('', 'R', '恢复上一个会话', function()
-        spoon.ClipShow:restoreLastSession()
-    end)
-    cmodal:bind('', 'B', '在浏览器中打开', function()
-        spoon.ClipShow:openInBrowserWithRef()
-        spoon.ClipShow:toggleShow()
-        spoon.ModalMgr:deactivate({"clipshowM"})
-    end)
-    cmodal:bind('', 'S', '用百度搜索', function()
-        spoon.ClipShow:openInBrowserWithRef("https://www.baidu.com/search?q=")
-        spoon.ClipShow:toggleShow()
-        spoon.ModalMgr:deactivate({"clipshowM"})
-    end)
-    cmodal:bind('', 'F', '保存到桌面', function()
-        spoon.ClipShow:saveToFile()
-        spoon.ClipShow:toggleShow()
-        spoon.ModalMgr:deactivate({"clipshowM"})
-    end)
-    cmodal:bind('', 'H', '在 Github 中搜索', function()
-        spoon.ClipShow:openInBrowserWithRef("https://github.com/search?q=")
-        spoon.ClipShow:toggleShow()
-        spoon.ModalMgr:deactivate({"clipshowM"})
-    end)
-    cmodal:bind('', 'G', '使用 Google 搜索', function()
-        spoon.ClipShow:openInBrowserWithRef("https://www.google.com/search?q=")
-        spoon.ClipShow:toggleShow()
-        spoon.ModalMgr:deactivate({"clipshowM"})
-    end)
-    cmodal:bind('', 'L', '用 Sublime Text 打开', function()
-        spoon.ClipShow:openWithCommand("/usr/local/bin/subl")
-        spoon.ClipShow:toggleShow()
-        spoon.ModalMgr:deactivate({"clipshowM"})
-    end)
-
-    -- 绑定功 clipshowM 快捷键
-    hsclipsM_keys = hsclipsM_keys or {"alt", "C"}
-    if string.len(hsclipsM_keys[2]) > 0 then
-        spoon.ModalMgr.supervisor:bind(hsclipsM_keys[1], hsclipsM_keys[2], "打开剪切板面板", function()
-            spoon.ClipShow:toggleShow()
-            if spoon.ClipShow.canvas:isShowing() then
-                spoon.ModalMgr:deactivateAll()
-                spoon.ModalMgr:activate({"clipshowM"})
-            end
-        end)
-    end
-end
-
 
 
 
@@ -210,50 +110,12 @@ end
 ----------------------------------------------------------------------------------------------------
 hsman_keys = hsman_keys or {"alt", "H"}
 if string.len(hsman_keys[2]) > 0 then
-    spoon.ModalMgr.supervisor:bind(hsman_keys[1], hsman_keys[2], "查看 Hammerspoon 手册", function()
+    spoon.ModalMgr.supervisor:bind(hsman_keys[1], hsman_keys[2], "查看 Hammerspoon 手册和 Notion 页面", function()
         hs.doc.hsdocs.forceExternalBrowser(true)
         hs.doc.hsdocs.moduleEntitiesInSidebar(true)
         hs.doc.hsdocs.help()
+        hs.urlevent.openURL("https://bead-confidence-3ce.notion.site/hammer-spoon-23e82dd2955e8028b678ca1439019f55?pvs=74")
     end)
-end
-
-----------------------------------------------------------------------------------------------------
--- countdownM 倒计时配置
-----------------------------------------------------------------------------------------------------
-if spoon.CountDown then
-    spoon.ModalMgr:new("countdownM")
-    local cmodal = spoon.ModalMgr.modal_list["countdownM"]
-    cmodal:bind('', 'escape', '退出面板', function() spoon.ModalMgr:deactivate({"countdownM"}) end)
-    cmodal:bind('', 'Q', '退出面板', function() spoon.ModalMgr:deactivate({"countdownM"}) end)
-    --cmodal:bind('', 'tab', 'Toggle Cheatsheet', function() spoon.ModalMgr:toggleCheatsheet() end)
-    cmodal:bind('', '0', '1 分钟', function()
-        spoon.CountDown:startFor(1)
-        spoon.ModalMgr:deactivate({"countdownM"})
-    end)
-    for i = 1, 9 do
-        cmodal:bind('', tostring(i), string.format("%s 分钟", 10 * i), function()
-            spoon.CountDown:startFor(10 * i)
-            spoon.ModalMgr:deactivate({"countdownM"})
-        end)
-    end
-    cmodal:bind('', 'return', '25 分钟 ', function()
-        spoon.CountDown:startFor(25)
-        spoon.ModalMgr:deactivate({"countdownM"})
-    end)
-    cmodal:bind('', 'space', '暂停和恢复倒计时', function()
-        spoon.CountDown:pauseOrResume()
-        spoon.ModalMgr:deactivate({"countdownM"})
-    end)
-
-    -- 定义打开倒计时面板快捷键
-    hscountdM_keys = hscountdM_keys or {"alt", "I"}
-    if string.len(hscountdM_keys[2]) > 0 then
-        spoon.ModalMgr.supervisor:bind(hscountdM_keys[1], hscountdM_keys[2], "进入倒计时面板", function()
-            spoon.ModalMgr:deactivateAll()
-            -- 显示倒计时面板
-            spoon.ModalMgr:activate({"countdownM"}, "#FF6347", true)
-        end)
-    end
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -269,6 +131,22 @@ end
 ----------------------------------------------------------------------------------------------------
 -- 窗口管理
 ----------------------------------------------------------------------------------------------------
+    hs.hotkey.bind({'cmd', 'alt'}, 'Left', function()
+        spoon.WinWin:stash()
+        spoon.WinWin:moveAndResize("halfleft")
+    end)
+    hs.hotkey.bind({'cmd', 'alt'}, 'Right', function()
+        spoon.WinWin:stash()
+        spoon.WinWin:moveAndResize("halfright")
+    end)
+    hs.hotkey.bind({'cmd', 'alt'}, 'Up', function()
+        spoon.WinWin:stash()
+        spoon.WinWin:moveAndResize("halfup")
+    end)
+    hs.hotkey.bind({'cmd', 'alt'}, 'Down', function()
+        spoon.WinWin:stash()
+        spoon.WinWin:moveAndResize("halfdown")
+    end)
 if spoon.WinWin then
     spoon.ModalMgr:new("resizeM")
     local cmodal = spoon.ModalMgr.modal_list["resizeM"]
@@ -281,10 +159,11 @@ if spoon.WinWin then
     cmodal:bind('', 'W', '向上移动', function() spoon.WinWin:stepMove("up") end, nil, function() spoon.WinWin:stepMove("up") end)
     cmodal:bind('', 'S', '向下移动', function() spoon.WinWin:stepMove("down") end, nil, function() spoon.WinWin:stepMove("down") end)
 
-    cmodal:bind('', 'H', '左半屏', function() spoon.WinWin:stash() spoon.WinWin:moveAndResize("halfleft") end)
-    cmodal:bind('', 'L', '右半屏', function() spoon.WinWin:stash() spoon.WinWin:moveAndResize("halfright") end)
-    cmodal:bind('', 'K', '上半屏', function() spoon.WinWin:stash() spoon.WinWin:moveAndResize("halfup") end)
-    cmodal:bind('', 'J', '下半屏', function() spoon.WinWin:stash() spoon.WinWin:moveAndResize("halfdown") end)
+    --cmodal:bind('', 'H', '左半屏', function() spoon.WinWin:stash() spoon.WinWin:moveAndResize("halfleft") end)
+    --cmodal:bind('', 'L', '右半屏', function() spoon.WinWin:stash() spoon.WinWin:moveAndResize("halfright") end)
+    --cmodal:bind('', 'K', '上半屏', function() spoon.WinWin:stash() spoon.WinWin:moveAndResize("halfup") end)
+    --cmodal:bind('', 'J', '下半屏', function() spoon.WinWin:stash() spoon.WinWin:moveAndResize("halfdown") end)
+
 
     cmodal:bind('', 'Y', '屏幕左上角', function() spoon.WinWin:stash() spoon.WinWin:moveAndResize("cornerNW") end)
     cmodal:bind('', 'O', '屏幕右上角', function() spoon.WinWin:stash() spoon.WinWin:moveAndResize("cornerNE") end)
@@ -362,56 +241,6 @@ if spoon.KSheet then
 end
 
 ----------------------------------------------------------------------------------------------------
--- 绑定 AClock 快捷键
-----------------------------------------------------------------------------------------------------
-if spoon.AClock then
-    hsaclock_keys = hsaclock_keys or {"alt", "T"}
-    if string.len(hsaclock_keys[2]) > 0 then
-        spoon.ModalMgr.supervisor:bind(hsaclock_keys[1], hsaclock_keys[2], "时钟", function() spoon.AClock:toggleShow() end)
-    end
-end
---
-----------------------------------------------------------------------------------------------------
---  绑定 PopupTranslateSelection 快捷键
-----------------------------------------------------------------------------------------------------
--- 弹出选中词的翻译面板
--- esc 退出翻译面板
--- return 键复制翻译结果
-
-
-----------------------------------------------------------------------------------------------------
--- 粘贴浏览器最前置的标题和地址
-----------------------------------------------------------------------------------------------------
-hstype_keys = hstype_keys or {"alt", "V"}
-if string.len(hstype_keys[2]) > 0 then
-    spoon.ModalMgr.supervisor:bind(hstype_keys[1], hstype_keys[2], "粘贴浏览器最前置页面标题和地址", function()
-        local safari_running = hs.application.applicationsForBundleID("com.apple.Safari")
-        local chrome_running = hs.application.applicationsForBundleID("com.google.Chrome")
-        if #safari_running > 0 then
-            local stat, data = hs.applescript('tell application "Safari" to get {URL, name} of current tab of window 1')
-            if stat then hs.eventtap.keyStrokes("[" .. data[2] .. "](" .. data[1] .. ")") end
-        elseif #chrome_running > 0 then
-            local stat, data = hs.applescript('tell application "Google Chrome" to get {URL, title} of active tab of window 1')
-            if stat then hs.eventtap.keyStrokes("[" .. data[2] .. "](" .. data[1] .. ")") end
-        end
-    end)
-end
-
-
-
-----------------------------------------------------------------------------------------------------
--- Hammerspoon 搜索
-----------------------------------------------------------------------------------------------------
-if spoon.HSearch then
-    hsearch_keys = hsearch_keys or {"alt", "G"}
-    if string.len(hsearch_keys[2]) > 0 then
-        spoon.ModalMgr.supervisor:bind(hsearch_keys[1], hsearch_keys[2], '启动 Hammerspoon 搜索', function() spoon.HSearch:toggleShow() end)
-    end
-end
-
-
-
-----------------------------------------------------------------------------------------------------
 -- 快捷显示 Hammerspoon 控制台
 ----------------------------------------------------------------------------------------------------
 hsconsole_keys = hsconsole_keys or {"alt", "Z"}
@@ -419,6 +248,46 @@ if string.len(hsconsole_keys[2]) > 0 then
     spoon.ModalMgr.supervisor:bind(hsconsole_keys[1], hsconsole_keys[2], "打开 Hammerspoon 控制台", function() hs.toggleConsole() end)
 end
 
+----------------------------------------------------------------------------------------------------
+-- 延迟 Command + Q 功能，防止误触
+----------------------------------------------------------------------------------------------------
+local allowQuit = false
+local hasQuit = false
+local delaySeconds = 1
+local unblockTimer = nil
+
+local quitBlocker = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(event)
+    local flags = event:getFlags()
+    local keyCode = event:getKeyCode()
+
+    -- Cmd + Q
+    if keyCode == 12 and flags.cmd then
+        if not allowQuit then
+            -- 第一次按下 Cmd+Q
+            hs.alert.show("Press Cmd+Q again to quit", delaySeconds)
+            allowQuit = true
+            hasQuit = false
+            if unblockTimer then unblockTimer:stop() end
+            unblockTimer = hs.timer.doAfter(delaySeconds, function()
+                allowQuit = false
+                hasQuit = false  -- ⬅️ 关键重置，窗口结束后恢复状态
+            end)
+            return true
+        elseif allowQuit and not hasQuit then
+            -- 第二次按，允许退出一次
+            hasQuit = true
+            return false
+        elseif allowQuit and hasQuit then
+            -- 在同一窗口内尝试第二次退出
+            hs.alert.show("Already quit once, wait to reset", 3)
+            return true
+        end
+    end
+
+    return false
+end)
+
+quitBlocker:start()
 ----------------------------------------------------------------------------------------------------
 -- 初始化 modalMgr
 ----------------------------------------------------------------------------------------------------

@@ -131,22 +131,29 @@ end
 ----------------------------------------------------------------------------------------------------
 -- 窗口管理
 ----------------------------------------------------------------------------------------------------
-    hs.hotkey.bind({'cmd', 'alt'}, 'Left', function()
-        spoon.WinWin:stash()
-        spoon.WinWin:moveAndResize("halfleft")
-    end)
-    hs.hotkey.bind({'cmd', 'alt'}, 'Right', function()
-        spoon.WinWin:stash()
-        spoon.WinWin:moveAndResize("halfright")
-    end)
-    hs.hotkey.bind({'cmd', 'alt'}, 'Up', function()
-        spoon.WinWin:stash()
-        spoon.WinWin:moveAndResize("halfup")
-    end)
-    hs.hotkey.bind({'cmd', 'alt'}, 'Down', function()
-        spoon.WinWin:stash()
-        spoon.WinWin:moveAndResize("halfdown")
-    end)
+hs.hotkey.bind({'cmd', 'alt'}, 'Left', function()
+    spoon.WinWin:stash()
+    spoon.WinWin:moveAndResize("halfleft")
+end)
+hs.hotkey.bind({'cmd', 'alt'}, 'Right', function()
+    spoon.WinWin:stash()
+    spoon.WinWin:moveAndResize("halfright")
+end)
+hs.hotkey.bind({'cmd', 'alt'}, 'Up', function()
+    spoon.WinWin:stash()
+    spoon.WinWin:moveAndResize("halfup")
+end)
+hs.hotkey.bind({'cmd', 'alt'}, 'Down', function()
+    spoon.WinWin:stash()
+    spoon.WinWin:moveAndResize("halfdown")
+end)
+hs.hotkey.bind({'cmd', 'alt'}, '=', function()
+    spoon.WinWin:stash()
+    spoon.WinWin:moveAndResize("fullscreen")
+end)
+hs.hotkey.bind({'cmd', 'alt'}, 'delete', function()
+    spoon.WinWin:undo()
+end) 
 if spoon.WinWin then
     spoon.ModalMgr:new("resizeM")
     local cmodal = spoon.ModalMgr.modal_list["resizeM"]
@@ -251,43 +258,59 @@ end
 ----------------------------------------------------------------------------------------------------
 -- 延迟 Command + Q 功能，防止误触
 ----------------------------------------------------------------------------------------------------
-local allowQuit = false
-local hasQuit = false
-local delaySeconds = 1
-local unblockTimer = nil
+local cmdq_time_window = 1.5  -- 保护窗口时间（秒）
+local protect_mode_active = false
+local quit_times = 0
+local keyListener = nil
 
-local quitBlocker = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(event)
-    local flags = event:getFlags()
-    local keyCode = event:getKeyCode()
+cmdq_protect_keys = cmdq_protect_keys or {"cmd", "Q"}
 
-    -- Cmd + Q
-    if keyCode == 12 and flags.cmd then
-        if not allowQuit then
-            -- 第一次按下 Cmd+Q
-            hs.alert.show("Press Cmd+Q again to quit", delaySeconds)
-            allowQuit = true
-            hasQuit = false
-            if unblockTimer then unblockTimer:stop() end
-            unblockTimer = hs.timer.doAfter(delaySeconds, function()
-                allowQuit = false
-                hasQuit = false  -- ⬅️ 关键重置，窗口结束后恢复状态
-            end)
-            return true
-        elseif allowQuit and not hasQuit then
-            -- 第二次按，允许退出一次
-            hasQuit = true
-            return false
-        elseif allowQuit and hasQuit then
-            -- 在同一窗口内尝试第二次退出
-            hs.alert.show("Already quit once, wait to reset", 3)
-            return true
+if string.len(cmdq_protect_keys[2]) > 0 then
+    spoon.ModalMgr.supervisor:bind(cmdq_protect_keys[1], cmdq_protect_keys[2], "Activate Protect mode", function()
+        if protect_mode_active then
+            hs.alert.show("Already in protect mode")
+            return
         end
-    end
 
-    return false
-end)
+        protect_mode_active = true
+        quit_times = 0
+        hs.alert.show("Protect mode active: press Q again to kill app", cmdq_time_window)
 
-quitBlocker:start()
+        -- 启动按键监听器
+        keyListener = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(event)
+            if quit_times > 0 then
+                hs.alert.show("Press Q too quick, please wait a moment", cmdq_time_window)
+                keyListener:stop()
+                keyListener = nil
+                return false                
+            end     
+
+            local key = event:getCharacters(true)
+            if key == "q" then
+                if quit_times == 0 then
+                    local frontapp = hs.application.frontmostApplication()
+                    if frontapp then
+                        frontapp:kill()
+                    end
+                    quit_times = quit_times + 1
+                end
+                return true
+            end
+            return false
+        end)
+        -- 启动按键监听器 and 在一定时间后停止
+        keyListener:start()
+        hs.timer.doAfter(cmdq_time_window, function()
+            protect_mode_active = false
+            quit_times = 0
+            if keyListener then
+                keyListener:stop()
+                keyListener = nil
+            end
+        end)
+    end)
+end
+
 ----------------------------------------------------------------------------------------------------
 -- 初始化 modalMgr
 ----------------------------------------------------------------------------------------------------
